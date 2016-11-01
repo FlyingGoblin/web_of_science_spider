@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-
-__author__ = 'flyinggoblin'
-
 from re import findall
 
 import requests
 from bs4 import BeautifulSoup
+from Paper import Paper
+
+__author__ = 'flyinggoblin'
 
 COLLECTION_SCI = 0
 COLLECTION_SSCI = 1
@@ -29,6 +29,7 @@ COLLECTION_CN = {
     COLLECTION_IC: 'IC'
 }
 
+
 class Spider(object):
     def __init__(self):
         self.__root = 'http://apps.webofknowledge.com'
@@ -45,11 +46,10 @@ class Spider(object):
         hearder['Referer'] = 'https://apps.webofknowledge.com/UA_GeneralSearch_input.do?SID='\
                              + self.__sid \
                              + '&product=WOS&search_mode=GeneralSearch'
-        hearder['User-Agent'] = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)"\
-                          + " Chrome/50.0.2661.94 Safari/537.36"
+        hearder['User-Agent'] = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)" \
+                                + " Chrome/50.0.2661.94 Safari/537.36"
         hearder['Content-Type'] = 'application/x-www-form-urlencoded'
         return hearder
-
 
     @property
     def __form_data(self):
@@ -89,11 +89,12 @@ class Spider(object):
             return error
         form_data = self.__form_data
         form_data['value(input1)'] = paper_name
-        form_data['value(select1)'] = 'TS'
+        form_data['value(select1)'] = 'TI'
         s = requests.Session()
         r = s.post(self.__search_root, data=form_data, headers=self.__hearder)
         soup = BeautifulSoup(r.text, 'html.parser')
         # print(soup)
+        paper = None
         # 在搜索结果第一页中找title相等的论文
         for all_paper_info in soup.select('div.search-results-item'):
             # title
@@ -102,39 +103,43 @@ class Spider(object):
             title = title.replace('|||', ' ')
             if not title.strip().lower() == paper_name.strip().lower():
                 continue
+            else:
+                if paper:
+                    error = 'more than one paper founded'
+                    return paper, error
             # Times Cited
             cited_times_str = findall(r'\d', all_paper_info.select('div.search-results-data-cite')[0].get_text())[0]
             cited_times = int(cited_times_str)
             if cited_times > 0:
                 cited_url = self.__root + all_paper_info.select('div.search-results-data-cite a')[0]['href']
-                print(cited_url)
+            else:
+                cited_url = ''
 
             paper_url = self.__root + all_paper_info.select('a.smallV110')[0]['href']
             # authers
             r = s.get(paper_url)
             paper_soup = BeautifulSoup(r.text, 'html.parser')
-            authers_str = paper_soup.select('p.FR_field')[0].get_text().replace('\n', '') #这里其实很危险
+            authers_str = paper_soup.select('p.FR_field')[0].get_text().replace('\n', '')  # 这里其实很危险
             authers = findall('(?<=\\()(.+?)(?=\\))', authers_str)
-            print(authers)
             # journal
             journal = paper_soup.select('p.sourceTitle value')[0].get_text()
-            print(journal)
-        return 1, 1, 1, 'no error'
+            paper = Paper(title, authers, journal, cited_times, cited_url)
+        if paper:
+            error = 'no error'
+        else:
+            error = 'no such paper'
+        return paper, error
 
     def search_paper(self, paper_name):
         try:
-            a_and_r, refer_num, flag, error = self.__do_search_paper(paper_name)
-        except Exception as e:
+            paper, error = self.__do_search_paper(paper_name)
+        except Exception:
             # 出现错误，再次try，以提高结果成功率
             try:
-                a_and_r, refer_num, flag, error = self.__do_search_paper(paper_name)
+                paper, error = self.__do_search_paper(paper_name)
             except Exception as e:
                 print(e)
-                a_and_r = 0
-                refer_num = 0
-                flag = 1
-                error = str(e)
-        return a_and_r, refer_num, flag, error
+        return paper, error
 
     def get_session_id(self):
         s = requests.get(self.__root)
