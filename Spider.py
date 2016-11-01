@@ -31,10 +31,10 @@ COLLECTION_CN = {
 
 class Spider(object):
     def __init__(self):
-        self.__root = 'http://www.webofknowledge.com/'
+        self.__root = 'http://apps.webofknowledge.com'
         self.__search_root = 'https://apps.webofknowledge.com/WOS_GeneralSearch.do'
         self.__sid = self.get_session_id()
-        self.__start_year = 1999
+        self.__start_year = 1900
         self.__end_year = 2016
         self.__collection_enable_list = [False] * len(COLLECTION_LIST)
 
@@ -93,27 +93,33 @@ class Spider(object):
         s = requests.Session()
         r = s.post(self.__search_root, data=form_data, headers=self.__hearder)
         soup = BeautifulSoup(r.text, 'html.parser')
-        print(soup)
-        result_article = soup.find_all('input', value="DocumentType_ARTICLE")
-        if result_article:
-            article_num = 0
-        else:
-            article_num = int(findall(r"\d+", result_article[0].text.replace(',', ''))[0])
-        result_review = soup.find_all('input', value="DocumentType_REVIEW")
-        if result_review:
-            review_num = 0
-        else:
-            review_num = int(findall(r"\d+", result_review[0].text.replace(',', ''))[0])
-        a_and_r = article_num + review_num
-        report_link = soup.find('a', alt="View Citation Report")
-        true_link = "https://apps.webofknowledge.com" + report_link['href']
-        r2 = s.get(true_link)
-        soup2 = BeautifulSoup(r2.text, 'html.parser')
-        refer = soup2.find_all('span', id="CR_HEADER_3")
-        refer_num = int(findall(r"\d+", refer[0].text)[0])
-        flag = 0
-        error = 'no error'
-        return a_and_r, refer_num, flag, error
+        # print(soup)
+        # 在搜索结果第一页中找title相等的论文
+        for all_paper_info in soup.select('div.search-results-item'):
+            # title
+            title = all_paper_info.select('a.smallV110 value')[0].get_text().replace(' ', '|||')
+            title = title.strip()
+            title = title.replace('|||', ' ')
+            if not title.strip().lower() == paper_name.strip().lower():
+                continue
+            # Times Cited
+            cited_times_str = findall(r'\d', all_paper_info.select('div.search-results-data-cite')[0].get_text())[0]
+            cited_times = int(cited_times_str)
+            if cited_times > 0:
+                cited_url = self.__root + all_paper_info.select('div.search-results-data-cite a')[0]['href']
+                print(cited_url)
+
+            paper_url = self.__root + all_paper_info.select('a.smallV110')[0]['href']
+            # authers
+            r = s.get(paper_url)
+            paper_soup = BeautifulSoup(r.text, 'html.parser')
+            authers_str = paper_soup.select('p.FR_field')[0].get_text().replace('\n', '') #这里其实很危险
+            authers = findall('(?<=\\()(.+?)(?=\\))', authers_str)
+            print(authers)
+            # journal
+            journal = paper_soup.select('p.sourceTitle value')[0].get_text()
+            print(journal)
+        return 1, 1, 1, 'no error'
 
     def search_paper(self, paper_name):
         try:
