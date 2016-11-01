@@ -7,86 +7,91 @@ from re import findall
 import requests
 from bs4 import BeautifulSoup
 
-EDITIONS_SCI = 1
-EDITIONS_SSCI = 2
-EDITIONS_AHCI = 3
-EDITIONS_ISTP = 4
-EDITIONS_ISSHP = 5
-EDITIONS_ESCI = 6
-EDITIONS_CCR = 7
-EDITIONS_IC = 8
+COLLECTION_SCI = 0
+COLLECTION_SSCI = 1
+COLLECTION_AHCI = 2
+COLLECTION_ISTP = 3
+COLLECTION_ISSHP = 4
+COLLECTION_ESCI = 5
+COLLECTION_CCR = 6
+COLLECTION_IC = 7
 
-EDITIONS_LIST = [EDITIONS_SCI, EDITIONS_SSCI, EDITIONS_AHCI, EDITIONS_ISTP, EDITIONS_ISSHP, EDITIONS_ESCI, EDITIONS_CCR, EDITIONS_IC]
+COLLECTION_LIST = [COLLECTION_SCI, COLLECTION_SSCI, COLLECTION_AHCI, COLLECTION_ISTP, COLLECTION_ISSHP, COLLECTION_ESCI, COLLECTION_CCR, COLLECTION_IC]
+
+COLLECTION_CN = {
+    COLLECTION_SCI: 'SCI',
+    COLLECTION_SSCI: 'SSCI',
+    COLLECTION_AHCI: 'AHCI',
+    COLLECTION_ISTP: 'ISTP',
+    COLLECTION_ISSHP: 'ISSHP',
+    COLLECTION_ESCI: 'ESCI',
+    COLLECTION_CCR: 'CCR',
+    COLLECTION_IC: 'IC'
+}
 
 class Spider(object):
-    def __init__(self, sid, root_url):
-        self.__sid = sid
-        self.__root_url = root_url
+    def __init__(self):
+        self.__root = 'http://www.webofknowledge.com/'
+        self.__search_root = 'https://apps.webofknowledge.com/WOS_GeneralSearch.do'
+        self.__sid = self.get_session_id()
         self.__start_year = 1999
         self.__end_year = 2016
-        self.__hearder = {
-            'Origin': 'https://apps.webofknowledge.com',
-            'Referer': 'https://apps.webofknowledge.com/UA_GeneralSearch_input.do?SID='
-                       + str(sid)
-                       + '&product=WOS&search_mode=GeneralSearch&errorQid=6',
-            'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)"
-                          + " Chrome/50.0.2661.94 Safari/537.36",
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-        self.__editions_enable_list = [True, True, True, True, True, True, True, True]
+        self.__collection_enable_list = [False] * len(COLLECTION_LIST)
+
+    @property
+    def __hearder(self):
+        hearder = dict()
+        hearder['Origin'] = self.__root
+        hearder['Referer'] = 'https://apps.webofknowledge.com/UA_GeneralSearch_input.do?SID='\
+                             + self.__sid \
+                             + '&product=WOS&search_mode=GeneralSearch'
+        hearder['User-Agent'] = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)"\
+                          + " Chrome/50.0.2661.94 Safari/537.36"
+        hearder['Content-Type'] = 'application/x-www-form-urlencoded'
+        return hearder
+
 
     @property
     def __form_data(self):
-        base_form = {
-            'fieldCount': 1,
-            'action': 'search',
-            'product': 'WOS',
-            'search_mode': 'GeneralSearch',
-            'SID': self.__sid,
-            'max_field_count': 25,
-            'formUpdated': 'true',
-            'rs_sort_by': 'PY.D;LD.D;SO.A;VL.D;PG.A;AU.A',
-            'period': 'Range Selection',
-            'range':'ALL',
-            'ss_lemmatization': 'On',
-            'ss_spellchecking': 'Suggest',
-            'limitStatus': 'expanded',
-            'startYear': self.__start_year,
-            'endYear': self.__end_year,
-            'update_back2search_link_param': 'yes',
-            'ssStatus': 'display:none',
-            'ss_showsuggestions': 'ON',
-            'ss_numDefaultGeneralSearchFields':1
-            # 不一定必要的东西们
-             ,'max_field_notice': '',
-            'input_invalid_notice': '',
-            'exp_notice': '',
-            'input_invalid_notice_limits': '',
-            'sa_params': 'WOS | | '+self.__sid+'|https://apps.webofknowledge.com:443|'
-        }
+        base_form = dict()
+        base_form['fieldCount'] = 1
+        base_form['action'] = 'search'
+        base_form['product'] = 'WOS'
+        base_form['search_mode'] = 'GeneralSearch'
+        base_form['SID'] = self.__sid
+        base_form['max_field_count'] = 25
+        base_form['formUpdated'] = 'true'
+        base_form['rs_sort_by'] = 'PY.D;LD.D;SO.A;VL.D;PG.A;AU.A'
+        base_form['period'] = 'Range Selection'
+        base_form['range'] = 'ALL'
+        base_form['startYear'] = self.__start_year
+        base_form['endYear'] = self.__end_year
+        # base_form['ss_lemmatization'] = 'On'
+        # base_form['ss_spellchecking'] = 'Suggest'
+        # base_form['limitStatus'] = 'expanded'
+        # base_form['update_back2search_link_param'] = 'yes'
+        # base_form['ssStatus'] = 'display:none'
+        # base_form['ss_showsuggestions'] = 'ON'
+        # base_form['ss_numDefaultGeneralSearchFields'] = 1
+
         # 会议信息
-        base_form['editions'] = ['SCI','SSCI']
-        # for editions_flag in self.__editions_enable_list:
-        #     if editions_flag:
-        #         base_form['editions'] = ['SCI','SSCI']
-
-
-        # value(input1):A Distributed Computational Cognitive Model for Object Recognition
-        # value(select1):TS
-        #
-        # value(hidInput1):
-        # SinceLastVisit_UTC:
-        # SinceLastVisit_DATE:
-        # ss_query_language:
-
+        base_form['editions'] = []
+        for index in range(len(self.__collection_enable_list)):
+            collection_flag = self.__collection_enable_list[index]
+            if collection_flag:
+                base_form['editions'].append(COLLECTION_CN[index])
         return base_form
 
     def __do_search_paper(self, paper_name):
+        if not any(self.__collection_enable_list):
+            print('enable at least one collection first!')
+            error = 'no collection'
+            return error
         form_data = self.__form_data
         form_data['value(input1)'] = paper_name
         form_data['value(select1)'] = 'TS'
         s = requests.Session()
-        r = s.post(self.__root_url, data=form_data, headers=self.__hearder)
+        r = s.post(self.__search_root, data=form_data, headers=self.__hearder)
         soup = BeautifulSoup(r.text, 'html.parser')
         print(soup)
         result_article = soup.find_all('input', value="DocumentType_ARTICLE")
@@ -124,3 +129,21 @@ class Spider(object):
                 flag = 1
                 error = str(e)
         return a_and_r, refer_num, flag, error
+
+    def get_session_id(self):
+        s = requests.get(self.__root)
+        sid = findall(r'SID=\w+&', s.url)[0].replace('SID=', '').replace('&', '')
+        return sid
+
+    def enable_collection(self, collection):
+        if collection in COLLECTION_LIST:
+            self.__collection_enable_list[collection] = True
+        else:
+            print('no such collection')
+
+    def disable_collection(self, collection):
+        if collection in COLLECTION_LIST:
+            self.__collection_enable_list[collection] = False
+        else:
+            print('no such collection')
+
