@@ -11,9 +11,10 @@ if __name__=="__main__":
 
     root = 'http://www.webofknowledge.com/'
     s = requests.get(root)
+    print(s.url)
     sid = findall(r'SID=\w+&', s.url)[0].replace('SID=', '').replace('&', '')
-    obj_spider = Spider(sid, 'A Distributed Computational Cognitive Model for Object Recognition', 1993, 2016)
-    ar, ref, fl, er = obj_spider.craw(root_url)
+    obj_spider = Spider(sid, root_url)
+    ar, ref, fl, er = obj_spider.search_paper('A Distributed Computational Cognitive Model for Object Recognition')
     print(ar)
     print(ref)
     print(fl)
