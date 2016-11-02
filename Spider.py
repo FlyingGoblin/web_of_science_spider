@@ -13,8 +13,8 @@ COLLECTION_AHCI = 2
 COLLECTION_ISTP = 3
 COLLECTION_ISSHP = 4
 COLLECTION_ESCI = 5
-COLLECTION_CCR = 6
-COLLECTION_IC = 7
+COLLECTION_CCR = 6  # 化学
+COLLECTION_IC = 7  # 化学
 
 COLLECTION_LIST = [COLLECTION_SCI, COLLECTION_SSCI, COLLECTION_AHCI, COLLECTION_ISTP, COLLECTION_ISSHP, COLLECTION_ESCI, COLLECTION_CCR, COLLECTION_IC]
 
@@ -138,6 +138,8 @@ class Spider(object):
             try:
                 paper, error = self.__do_search_paper(paper_name)
             except Exception as e:
+                paper = None
+                error = e
                 print(e)
         return paper, error
 
@@ -158,3 +160,39 @@ class Spider(object):
         else:
             print('no such collection')
 
+    def __do_search_cite_papers(self, paper, collection):
+        cite_papers = None
+        error = 'no error'
+        s = requests.Session()
+        r = s.get(paper.cited_url)
+        cite_soup = BeautifulSoup(r.text, 'html.parser')
+        if collection is not None:
+            span = cite_soup.select('span#CAScorecard_count_WOS' + COLLECTION_CN[collection])[0]
+            if int(span.get_text()) is 0:
+                return cite_papers, error
+            else:
+                cite_url_collection = self.__root + '/' + span.a['href'].replace(';jsessionid=' + r.cookies['JSESSIONID'], '')
+                r = s.get(cite_url_collection)
+                cite_soup = BeautifulSoup(r.text, 'html.parser')
+        print(cite_soup)
+        return cite_papers, error
+
+    def search_cite_papers(self, paper, collection=None):  # 目前一次只支持查一种会议类型和全数据
+        cite_papers = None
+        if paper is None:
+            print('invalid paper')
+            error = 'invalied paper'
+        elif paper.cited_times is 0:
+            print('no cite')
+            error = 'no cite'
+        else:
+            try:
+                cite_papers, error = self.__do_search_cite_papers(paper, collection)
+            except Exception:
+                # 出现错误，再次try，以提高结果成功率
+                try:
+                    cite_papers, error = self.__do_search_cite_papers(paper, collection)
+                except Exception as e:
+                    error = e
+                    print(e)
+        return cite_papers, error
