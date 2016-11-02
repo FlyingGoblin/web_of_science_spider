@@ -8,7 +8,7 @@ import bs4
 if __name__=="__main__":
     FIT3_524_spider = Spider()
     FIT3_524_spider.enable_collection(COLLECTION_SCI)
-    paper, error = FIT3_524_spider.search_paper('A Distributed Computational Cognitive Model for Object Recognition')
+    paper, error = FIT3_524_spider.search_paper('Construction of Iso-contours, Bisectors and Voronoi Diagrams on Triangulated Surfaces')
     print(paper)
     cite_papers, error = FIT3_524_spider.search_cite_papers(paper, COLLECTION_SCI)
     print(len(cite_papers))

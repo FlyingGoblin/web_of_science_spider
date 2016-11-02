@@ -101,7 +101,7 @@ class Spider(object):
             title = all_paper_info.select('a.smallV110 value')[0].get_text().replace(' ', '|||')
             title = title.strip()
             title = title.replace('|||', ' ')
-            if not title.strip().lower() == paper_name.strip().lower():
+            if not ''.join(filter(str.isalnum, title)).lower() == ''.join(filter(str.isalnum, paper_name)).lower():
                 continue
             else:
                 if paper:
