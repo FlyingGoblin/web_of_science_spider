@@ -11,4 +11,7 @@ if __name__=="__main__":
     paper, error = FIT3_524_spider.search_paper('A Distributed Computational Cognitive Model for Object Recognition')
     cite_papers, error = FIT3_524_spider.search_cite_papers(paper, COLLECTION_SCI)
     print(paper)
+    print(len(cite_papers))
+    for p in cite_papers:
+        print(p)
     print(error)

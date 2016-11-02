@@ -161,8 +161,9 @@ class Spider(object):
             print('no such collection')
 
     def __do_search_cite_papers(self, paper, collection):
-        cite_papers = None
+        cite_papers = []
         error = 'no error'
+        # 获得引用页面
         s = requests.Session()
         r = s.get(paper.cited_url)
         cite_soup = BeautifulSoup(r.text, 'html.parser')
@@ -174,7 +175,31 @@ class Spider(object):
                 cite_url_collection = self.__root + '/' + span.a['href'].replace(';jsessionid=' + r.cookies['JSESSIONID'], '')
                 r = s.get(cite_url_collection)
                 cite_soup = BeautifulSoup(r.text, 'html.parser')
-        print(cite_soup)
+        #获得引用论文信息
+        papers_info = cite_soup.select('div.search-results-item')
+        for paper_info in papers_info:
+            title = paper_info.select('a.smallV110 value')[0].get_text().replace(' ', '|||')
+            title = title.strip()
+            title = title.replace('|||', ' ')
+            # Times Cited
+            cited_times_str = findall(r'\d', paper_info.select('div.search-results-data-cite')[0].get_text())[0]
+            cited_times = int(cited_times_str)
+            if cited_times > 0:
+                cited_url = self.__root + paper_info.select('div.search-results-data-cite a')[0]['href']
+            else:
+                cited_url = ''
+
+            paper_url = self.__root + paper_info.select('a.smallV110')[0]['href']
+            # authers
+            r = s.get(paper_url)
+            paper_soup = BeautifulSoup(r.text, 'html.parser')
+            authers_str = paper_soup.select('p.FR_field')[0].get_text().replace('\n', '')  # 这里其实很危险
+            authers = findall('(?<=\\()(.+?)(?=\\))', authers_str)
+            # journal
+            journal = paper_soup.select('p.sourceTitle value')[0].get_text()
+            paper = Paper(title, authers, journal, cited_times, cited_url)
+            print(paper)
+            cite_papers.append(paper)
         return cite_papers, error
 
     def search_cite_papers(self, paper, collection=None):  # 目前一次只支持查一种会议类型和全数据
