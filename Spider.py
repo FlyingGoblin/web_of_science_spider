@@ -123,7 +123,10 @@ class Spider(object):
             authers = findall('(?<=\\()(.+?)(?=\\))', authers_str)
             # journal
             journal = paper_soup.select('p.sourceTitle value')[0].get_text()
-            paper = Paper(title, authers, journal, cited_times, cited_url)
+            # year
+            year_str = findall(r'\d+', paper_soup.select('div.block-record-info-source p.FR_field')[4].get_text())[0]
+            year = int(year_str)
+            paper = Paper(title, authers, journal, year, cited_times, cited_url)
         if paper:
             error = 'no error'
         else:
@@ -197,7 +200,10 @@ class Spider(object):
             authers = findall('(?<=\\()(.+?)(?=\\))', authers_str)
             # journal
             journal = paper_soup.select('p.sourceTitle value')[0].get_text()
-            paper = Paper(title, authers, journal, cited_times, cited_url)
+            # year
+            year_str = findall(r'\d+', paper_soup.select('div.block-record-info-source p.FR_field')[4].get_text())[0]
+            year = int(year_str)
+            paper = Paper(title, authers, journal, year, cited_times, cited_url)
             print(paper)
             cite_papers.append(paper)
         return cite_papers, error
