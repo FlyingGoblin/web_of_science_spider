@@ -1,2 +1,4 @@
 requests==2.11.1
 beautifulsoup4==4.5.1
+xlrd==1.0.0
+xlwt==1.1.2

@@ -165,18 +165,18 @@ class Spider(object):
 
     def __do_search_cite_papers(self, paper, collection):
         cite_papers = []
-        error = 'no error'
+        cite_url = paper.cited_url
         # 获得引用页面
         s = requests.Session()
-        r = s.get(paper.cited_url)
+        r = s.get(cite_url)
         cite_soup = BeautifulSoup(r.text, 'html.parser')
         if collection is not None:
             span = cite_soup.select('span#CAScorecard_count_WOS' + COLLECTION_CN[collection])[0]
             if int(span.get_text()) is 0:
-                return cite_papers, error
+                return cite_papers, cite_url
             else:
-                cite_url_collection = self.__root + '/' + span.a['href'].replace(';jsessionid=' + r.cookies['JSESSIONID'], '')
-                r = s.get(cite_url_collection)
+                cite_url = self.__root + '/' + span.a['href'].replace(';jsessionid=' + r.cookies['JSESSIONID'], '')
+                r = s.get(cite_url)
                 cite_soup = BeautifulSoup(r.text, 'html.parser')
         # 获得引用论文信息
         while True:  # 翻页直到最后一页
@@ -216,24 +216,30 @@ class Spider(object):
                 cite_soup = BeautifulSoup(r.text, 'html.parser')
             else:
                 break
-        return cite_papers, error
+        return cite_papers, cite_url
 
     def search_cite_papers(self, paper, collection=None):  # 目前一次只支持查一种会议类型和全数据库
         cite_papers = None
         if paper is None:
             print('invalid paper')
+            cite_url = None
             error = 'invalid paper'
         elif paper.cited_times is 0:
             print('no cite')
-            error = 'no cite'
+            cite_url = paper.cited_url
+            cite_papers = []
+            error = 'no error'
         else:
             try:
-                cite_papers, error = self.__do_search_cite_papers(paper, collection)
+                cite_papers, cite_url = self.__do_search_cite_papers(paper, collection)
+                error = 'no error'
             except Exception:
                 # 出现错误，再次try，以提高结果成功率
                 try:
-                    cite_papers, error = self.__do_search_cite_papers(paper, collection)
+                    cite_papers, cite_url = self.__do_search_cite_papers(paper, collection)
+                    error = 'no error'
                 except Exception as e:
                     error = e
+                    cite_url = paper.cited_url
                     print(e)
-        return cite_papers, error
+        return cite_papers, cite_url, error
