@@ -1,10 +1,39 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*
 import xlrd
 import xlwt
 
 from Paper import Paper
+from My_enum import enum
 
 __author__ = 'flyinggoblin'
+
+TABLE_TITLE = enum('TITLE',
+                   'JOURNAL',
+                   'AUTHORS',
+                   'YEAR',
+                   'CITE_NUMBER',
+                   'OTHER_CITE_NUMBER',
+                   'CITE_TITLE',
+                   'CITE_JOURNAL',
+                   'CITE_AUTHOR',
+                   'CITE_YEAR',
+                   'IS_SCI',
+                   'IS_OTHER_CITE')
+
+TABLE_TITLE_CN = {
+    TABLE_TITLE.TITLE: u'题目',
+    TABLE_TITLE.JOURNAL: u'收录',
+    TABLE_TITLE.AUTHORS: u'作者',
+    TABLE_TITLE.YEAR: u'时间(年)',
+    TABLE_TITLE.CITE_NUMBER: u'引用',
+    TABLE_TITLE.OTHER_CITE_NUMBER: u'他引',
+    TABLE_TITLE.CITE_TITLE: u'引用文章',
+    TABLE_TITLE.CITE_JOURNAL: u'引用文章期刊',
+    TABLE_TITLE.CITE_AUTHOR: u'引用作者',
+    TABLE_TITLE.CITE_YEAR: u'引用时间(年)',
+    TABLE_TITLE.IS_SCI: u'是否SCI引用',
+    TABLE_TITLE.IS_OTHER_CITE: u'是否他引',
+}
 
 
 class PaperExcel(object):
@@ -13,18 +42,11 @@ class PaperExcel(object):
         self.__excel = xlwt.Workbook()
         self.__table = self.__excel.add_sheet('sheet 1')
         self.__current_row = 1
-        self.__table.write(0, 0, u'题目')
-        self.__table.write(0, 1, u'收录')
-        self.__table.write(0, 2, u'作者')
-        self.__table.write(0, 3, u'时间(年)')
-        self.__table.write(0, 4, u'引用')
-        self.__table.write(0, 5, u'他引')
-        self.__table.write(0, 6, u'引用文章')
-        self.__table.write(0, 7, u'引用文章期刊')
-        self.__table.write(0, 8, u'引用作者')
-        self.__table.write(0, 9, u'引用时间(年)')
-        self.__table.write(0, 10, u'是否SCI引用')
-        self.__table.write(0, 11, u'是否他引')
+        self.__write_table_title()
+
+    def __write_table_title(self):
+        for col in TABLE_TITLE_CN:
+            self.__table.write(0, col, TABLE_TITLE_CN[col])
 
     def write_paper_cite(self, paper, cites):
         row_start_paper = row_paper = self.__current_row
