@@ -49,37 +49,37 @@ class PaperExcel(object):
             self.__table.write(0, col, TABLE_TITLE_CN[col])
 
     def write_paper_cite(self, paper, cites):
-        row_start_paper = row_paper = self.__current_row
+        row_start_paper = self.__current_row
         # 论文本身
-        self.__table.write(row_paper, 0, paper.title)
-        self.__table.write(row_paper, 1, paper.journal)
+        self.__table.write(row_start_paper, TABLE_TITLE.TITLE, paper.title)
+        self.__table.write(row_start_paper, TABLE_TITLE.JOURNAL, paper.journal)
+        row_author = row_start_paper
         for author in paper.authors:
-            self.__table.write(row_paper, 2, author)
-            row_paper += 1
+            self.__table.write(row_author, TABLE_TITLE.AUTHORS, author)
+            row_author += 1
+        self.__table.write(row_start_paper, TABLE_TITLE.YEAR, paper.year)
+        self.__current_row += (row_author - row_start_paper)  # 更新一下最大行数
         # 引用信息
-        row_cite = self.__current_row
-        self.__table.write(row_cite, 3, paper.year)
-        self.__table.write(row_cite, 4, len(cites))
+        self.__table.write(row_start_paper, TABLE_TITLE.CITE_NUMBER, len(cites))
         other_cite_count = 0
-        row_cite_end = row_cite
+        row_start_cite = row_start_paper
         for cite in cites:
-            row_cite = row_start_cite = row_cite_end
-            self.__table.write(row_cite, 6, cite.title)
-            self.__table.write(row_cite, 7, cite.journal)
+            self.__table.write(row_start_cite, TABLE_TITLE.CITE_TITLE, cite.title)
+            self.__table.write(row_start_cite, TABLE_TITLE.CITE_JOURNAL, cite.journal)
+            row_author = row_start_cite
             for author in cite.authors:
-                self.__table.write(row_cite, 8, author)
-                row_cite += 1
-            row_cite_end = row_cite
-            row_cite = row_start_cite
-            self.__table.write(row_cite, 9, cite.year)
-            self.__table.write(row_cite, 10, 1)
+                self.__table.write(row_author, TABLE_TITLE.CITE_AUTHOR, author)
+                row_author += 1
+            self.__table.write(row_start_cite, TABLE_TITLE.CITE_YEAR, cite.year)
+            self.__table.write(row_start_cite, TABLE_TITLE.IS_SCI, 1)
             if paper.is_self_cite(cite):
-                self.__table.write(row_cite, 11, 0)
+                self.__table.write(row_start_cite, TABLE_TITLE.IS_OTHER_CITE, 0)
             else:
-                self.__table.write(row_cite, 11, 1)
+                self.__table.write(row_start_cite, TABLE_TITLE.IS_OTHER_CITE, 1)
                 other_cite_count += 1
-        self.__current_row = max(row_paper, row_cite_end)
-        self.__table.write(row_start_paper, 5, other_cite_count)
+            self.__current_row += (row_author - row_start_cite)  # 更新一下最大行数
+            row_start_cite = self.__current_row
+        self.__table.write(row_start_paper, TABLE_TITLE.OTHER_CITE_NUMBER, other_cite_count)
         self.__excel.save(self.__excel_path)
 
     @classmethod
