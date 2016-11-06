@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*
+import openpyxl
 import xlrd
-import xlwt
 
 from Paper import Paper
 from My_enum import enum
 
 __author__ = 'flyinggoblin'
 
-TABLE_TITLE = enum('TITLE',
+TABLE_TITLE = enum('zero',
+                   'TITLE',
                    'JOURNAL',
                    'AUTHORS',
                    'YEAR',
@@ -39,47 +40,45 @@ TABLE_TITLE_CN = {
 class PaperExcel(object):
     def __init__(self, excel_path):
         self.__excel_path = excel_path
-        self.__excel = xlwt.Workbook()
-        self.__table = self.__excel.add_sheet('sheet 1')
-        self.__current_row = 1
+        self.__excel = openpyxl.Workbook()
+        self.__table = self.__excel.active
         self.__write_table_title()
 
     def __write_table_title(self):
-        for col in TABLE_TITLE_CN:
-            self.__table.write(0, col, TABLE_TITLE_CN[col])
+        titles = (TABLE_TITLE_CN[col] for col in TABLE_TITLE_CN)
+        self.__table.append(titles)
+        self.__excel.save(self.__excel_path)
 
     def write_paper_cite(self, paper, cites):
-        row_start_paper = self.__current_row
+        row_start_paper = self.__table.max_row + 1
         # 论文本身
-        self.__table.write(row_start_paper, TABLE_TITLE.TITLE, paper.title)
-        self.__table.write(row_start_paper, TABLE_TITLE.JOURNAL, paper.journal)
+        self.__table.cell(row=row_start_paper, column=TABLE_TITLE.TITLE).value = paper.title
+        self.__table.cell(row=row_start_paper, column=TABLE_TITLE.JOURNAL).value = paper.journal
         row_author = row_start_paper
         for author in paper.authors:
-            self.__table.write(row_author, TABLE_TITLE.AUTHORS, author)
+            self.__table.cell(row=row_author, column=TABLE_TITLE.AUTHORS).value = author
             row_author += 1
-        self.__table.write(row_start_paper, TABLE_TITLE.YEAR, paper.year)
-        self.__current_row += (row_author - row_start_paper)  # 更新一下最大行数
+        self.__table.cell(row=row_start_paper, column=TABLE_TITLE.YEAR).value = paper.year
         # 引用信息
-        self.__table.write(row_start_paper, TABLE_TITLE.CITE_NUMBER, len(cites))
+        self.__table.cell(row=row_start_paper, column=TABLE_TITLE.CITE_NUMBER).value = len(cites)
         other_cite_count = 0
         row_start_cite = row_start_paper
         for cite in cites:
-            self.__table.write(row_start_cite, TABLE_TITLE.CITE_TITLE, cite.title)
-            self.__table.write(row_start_cite, TABLE_TITLE.CITE_JOURNAL, cite.journal)
+            self.__table.cell(row=row_start_cite, column=TABLE_TITLE.CITE_TITLE).value = cite.title
+            self.__table.cell(row=row_start_cite, column=TABLE_TITLE.CITE_JOURNAL).value = cite.journal
             row_author = row_start_cite
             for author in cite.authors:
-                self.__table.write(row_author, TABLE_TITLE.CITE_AUTHOR, author)
+                self.__table.cell(row=row_author, column=TABLE_TITLE.CITE_AUTHOR).value = author
                 row_author += 1
-            self.__table.write(row_start_cite, TABLE_TITLE.CITE_YEAR, cite.year)
-            self.__table.write(row_start_cite, TABLE_TITLE.IS_SCI, 1)
+            self.__table.cell(row=row_start_cite, column=TABLE_TITLE.CITE_YEAR).value = cite.year
+            self.__table.cell(row=row_start_cite, column=TABLE_TITLE.IS_SCI).value = 1
             if paper.is_self_cite(cite):
-                self.__table.write(row_start_cite, TABLE_TITLE.IS_OTHER_CITE, 0)
+                self.__table.cell(row=row_start_cite, column=TABLE_TITLE.IS_OTHER_CITE).value = 0
             else:
-                self.__table.write(row_start_cite, TABLE_TITLE.IS_OTHER_CITE, 1)
+                self.__table.cell(row=row_start_cite, column=TABLE_TITLE.IS_OTHER_CITE).value = 1
                 other_cite_count += 1
-            self.__current_row += (row_author - row_start_cite)  # 更新一下最大行数
-            row_start_cite = self.__current_row
-        self.__table.write(row_start_paper, TABLE_TITLE.OTHER_CITE_NUMBER, other_cite_count)
+            row_start_cite = self.__table.max_row + 1
+        self.__table.cell(row=row_start_paper, column=TABLE_TITLE.OTHER_CITE_NUMBER).value = other_cite_count
         self.__excel.save(self.__excel_path)
 
     @classmethod
