@@ -126,10 +126,10 @@ class Spider(object):
                 if not authors and possible_str.find('By:') >= 0 or possible_str.find(u'作者:') >= 0:
                     authors = findall('(?<=\\()(.+?)(?=\\))', possible_str)
                 if not year and possible_str.find('Published:') >= 0 or possible_str.find(u'出版年:') >= 0:
-                    year_str = findall(r'\d+', possible_str)[0]
+                    year_str = findall(r'\d+', possible_str)[-1]
                     year = int(year_str)
                 if not ids and possible_str.find('IDS Number:') >= 0 or possible_str.find(u'IDS 号:') >= 0:
-                    ids = findall(r'\w+', possible_str)[2]
+                    ids = findall(r'\w+', possible_str)[-1]
             paper = Paper(title, authors, journal, year, ids, cited_times, cited_url)
         if paper:
             error = 'no error'
@@ -209,10 +209,10 @@ class Spider(object):
                     if not authors and possible_str.find('By:') >= 0 or possible_str.find(u'作者:') >= 0:
                         authors = findall('(?<=\\()(.+?)(?=\\))', possible_str)
                     if not year and possible_str.find('Published:') >= 0 or possible_str.find(u'出版年:') >= 0:
-                        year_str = findall(r'\d+', possible_str)[0]
+                        year_str = findall(r'\d+', possible_str)[-1]
                         year = int(year_str)
                     if not ids and possible_str.find('IDS Number:') >= 0 or possible_str.find(u'IDS 号:') >= 0:
-                        ids = findall(r'\w+', possible_str)[2]
+                        ids = findall(r'\w+', possible_str)[-1]
                 paper = Paper(title, authors, journal, year, ids, cited_times, cited_url)
                 print(paper)
                 cite_papers.append(paper)
