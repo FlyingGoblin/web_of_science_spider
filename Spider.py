@@ -116,17 +116,21 @@ class Spider(object):
                 cited_url = ''
 
             paper_url = self.__root + all_paper_info.select('a.smallV110')[0]['href']
-            # authors
             r = s.get(paper_url)
             paper_soup = BeautifulSoup(r.text, 'html.parser')
-            authors_str = paper_soup.select('p.FR_field')[0].get_text().replace('\n', '')  # 这里其实很危险
-            authors = findall('(?<=\\()(.+?)(?=\\))', authors_str)
             # journal
             journal = paper_soup.select('p.sourceTitle value')[0].get_text()
-            # year
-            year_str = findall(r'\d+', paper_soup.select('div.block-record-info-source p.FR_field')[4].get_text())[0]
-            year = int(year_str)
-            paper = Paper(title, authors, journal, year, cited_times, cited_url)
+            authors = year = ids = None
+            for possible_field in paper_soup.select('p.FR_field'):
+                possible_str = possible_field.get_text()
+                if not authors and possible_str.find('By:') >= 0 or possible_str.find(u'作者:') >= 0:
+                    authors = findall('(?<=\\()(.+?)(?=\\))', possible_str)
+                if not year and possible_str.find('Published:') >= 0 or possible_str.find(u'出版年:') >= 0:
+                    year_str = findall(r'\d+', possible_str)[0]
+                    year = int(year_str)
+                if not ids and possible_str.find('IDS Number:') >= 0 or possible_str.find(u'IDS 号:') >= 0:
+                    ids = findall(r'\w+', possible_str)[2]
+            paper = Paper(title, authors, journal, year, ids, cited_times, cited_url)
         if paper:
             error = 'no error'
         else:
@@ -194,17 +198,22 @@ class Spider(object):
                     cited_url = ''
 
                 paper_url = self.__root + paper_info.select('a.smallV110')[0]['href']
-                # authors
                 r = s.get(paper_url)
                 paper_soup = BeautifulSoup(r.text, 'html.parser')
-                authors_str = paper_soup.select('p.FR_field')[0].get_text().replace('\n', '')  # 这里其实很危险
-                authors = findall('(?<=\\()(.+?)(?=\\))', authors_str)
                 # journal
                 journal = paper_soup.select('p.sourceTitle value')[0].get_text()
-                # year
-                year_str = findall(r'\d+', paper_soup.select('div.block-record-info-source p.FR_field')[4].get_text())[0]
-                year = int(year_str)
-                paper = Paper(title, authors, journal, year, cited_times, cited_url)
+                # authors, years & IDS
+                authors = year = ids = None
+                for possible_field in paper_soup.select('p.FR_field'):
+                    possible_str = possible_field.get_text()
+                    if not authors and possible_str.find('By:') >= 0 or possible_str.find(u'作者:') >= 0:
+                        authors = findall('(?<=\\()(.+?)(?=\\))', possible_str)
+                    if not year and possible_str.find('Published:') >= 0 or possible_str.find(u'出版年:') >= 0:
+                        year_str = findall(r'\d+', possible_str)[0]
+                        year = int(year_str)
+                    if not ids and possible_str.find('IDS Number:') >= 0 or possible_str.find(u'IDS 号:') >= 0:
+                        ids = findall(r'\w+', possible_str)[2]
+                paper = Paper(title, authors, journal, year, ids, cited_times, cited_url)
                 print(paper)
                 cite_papers.append(paper)
             # 翻页直到最后一页

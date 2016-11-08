@@ -12,13 +12,13 @@ TABLE_TITLE = enum('zero',
                    'JOURNAL',
                    'AUTHORS',
                    'YEAR',
+                   'IDS_NUMBER',
                    'CITE_NUMBER',
                    'OTHER_CITE_NUMBER',
                    'CITE_TITLE',
                    'CITE_JOURNAL',
                    'CITE_AUTHOR',
                    'CITE_YEAR',
-                   'IS_SCI',
                    'IS_OTHER_CITE')
 
 TABLE_TITLE_CN = {
@@ -26,14 +26,14 @@ TABLE_TITLE_CN = {
     TABLE_TITLE.JOURNAL: u'收录',
     TABLE_TITLE.AUTHORS: u'作者',
     TABLE_TITLE.YEAR: u'时间(年)',
+    TABLE_TITLE.IDS_NUMBER: u'检索号',
     TABLE_TITLE.CITE_NUMBER: u'引用',
     TABLE_TITLE.OTHER_CITE_NUMBER: u'他引',
     TABLE_TITLE.CITE_TITLE: u'引用文章',
     TABLE_TITLE.CITE_JOURNAL: u'引用文章期刊',
     TABLE_TITLE.CITE_AUTHOR: u'引用作者',
     TABLE_TITLE.CITE_YEAR: u'引用时间(年)',
-    TABLE_TITLE.IS_SCI: u'是否SCI引用',
-    TABLE_TITLE.IS_OTHER_CITE: u'是否他引',
+    TABLE_TITLE.IS_OTHER_CITE: u'是否他引'
 }
 
 
@@ -59,6 +59,7 @@ class PaperExcel(object):
             self.__table.cell(row=row_author, column=TABLE_TITLE.AUTHORS).value = author
             row_author += 1
         self.__table.cell(row=row_start_paper, column=TABLE_TITLE.YEAR).value = paper.year
+        self.__table.cell(row=row_start_paper, column=TABLE_TITLE.IDS_NUMBER).value = paper.ids
         # 引用信息
         self.__table.cell(row=row_start_paper, column=TABLE_TITLE.CITE_NUMBER).value = len(cites)
         other_cite_count = 0
@@ -71,7 +72,6 @@ class PaperExcel(object):
                 self.__table.cell(row=row_author, column=TABLE_TITLE.CITE_AUTHOR).value = author
                 row_author += 1
             self.__table.cell(row=row_start_cite, column=TABLE_TITLE.CITE_YEAR).value = cite.year
-            self.__table.cell(row=row_start_cite, column=TABLE_TITLE.IS_SCI).value = 1
             if paper.is_self_cite(cite):
                 self.__table.cell(row=row_start_cite, column=TABLE_TITLE.IS_OTHER_CITE).value = 0
             else:
@@ -86,3 +86,10 @@ class PaperExcel(object):
         title_data = xlrd.open_workbook(excel_path)
         table = title_data.sheets()[0]
         return table.col_values(0)
+
+    @classmethod
+    def write_cite_url(cls, cite_url_path, paper, cite_url):
+        cite_url_excel = openpyxl.load_workbook(cite_url_path)
+        cite_url_table = cite_url_excel[cite_url_excel.get_sheet_names()[0]]
+        cite_url_table.append([paper.title, cite_url])
+        cite_url_excel.save(cite_url_path)
