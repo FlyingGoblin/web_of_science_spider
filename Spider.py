@@ -38,6 +38,7 @@ class Spider(object):
         self.__start_year = 1900
         self.__end_year = 2016
         self.__collection_enable_list = [False] * len(COLLECTION_LIST)
+        self.__require_number = 1
 
     @property
     def __hearder(self):
@@ -92,6 +93,7 @@ class Spider(object):
         form_data['value(select1)'] = 'TI'
         s = requests.Session()
         r = s.post(self.__search_root, data=form_data, headers=self.__hearder)
+        self.__require_number += 1
         soup = BeautifulSoup(r.text, 'html.parser')
         # print(soup)
         paper = None
@@ -117,6 +119,7 @@ class Spider(object):
 
             paper_url = self.__root + all_paper_info.select('a.smallV110')[0]['href']
             r = s.get(paper_url)
+            self.__require_number += 1
             paper_soup = BeautifulSoup(r.text, 'html.parser')
             # journal
             journal = paper_soup.select('p.sourceTitle value')[0].get_text()
@@ -138,6 +141,8 @@ class Spider(object):
         return paper, error
 
     def search_paper(self, paper_name):
+        if self.__require_number >= 150:
+            self.__sid = self.get_session_id()
         try:
             paper, error = self.__do_search_paper(paper_name)
         except Exception:
@@ -173,6 +178,7 @@ class Spider(object):
         # 获得引用页面
         s = requests.Session()
         r = s.get(cite_url)
+        self.__require_number += 1
         cite_soup = BeautifulSoup(r.text, 'html.parser')
         if collection is not None:
             span = cite_soup.select('span#CAScorecard_count_WOS' + COLLECTION_CN[collection])[0]
@@ -181,6 +187,7 @@ class Spider(object):
             else:
                 cite_url = self.__root + '/' + span.a['href'].replace(';jsessionid=' + r.cookies['JSESSIONID'], '')
                 r = s.get(cite_url)
+                self.__require_number += 1
                 cite_soup = BeautifulSoup(r.text, 'html.parser')
         # 获得引用论文信息
         while True:  # 翻页直到最后一页
@@ -199,6 +206,7 @@ class Spider(object):
 
                 paper_url = self.__root + paper_info.select('a.smallV110')[0]['href']
                 r = s.get(paper_url)
+                self.__require_number += 1
                 paper_soup = BeautifulSoup(r.text, 'html.parser')
                 # journal
                 journal = paper_soup.select('p.sourceTitle value')[0].get_text()
@@ -222,6 +230,7 @@ class Spider(object):
             print('%d of % d' % (current_page, total_page))
             if current_page < total_page:
                 r = s.get(cite_soup.select('a.paginationNext')[0]['href'])
+                self.__require_number += 1
                 cite_soup = BeautifulSoup(r.text, 'html.parser')
             else:
                 break
@@ -229,6 +238,8 @@ class Spider(object):
 
     def search_cite_papers(self, paper, collection=None):  # 目前一次只支持查一种会议类型和全数据库
         cite_papers = None
+        if self.__require_number >= 150:
+            self.__sid = self.get_session_id()
         if paper is None:
             print('invalid paper')
             cite_url = None
